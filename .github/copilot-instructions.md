@@ -6,6 +6,11 @@ https://github.com/ps-copilot-sandbox/copilot-custom-workshop-django-react-web
 
 Building a full-stack web application demonstrating GitHub Copilot capabilities for modern web development with Django backend and React frontend.
 
+## Python Version Requirements
+- **Python**: 3.14.0 (latest development version)
+- **Django**: 5.2+ (compatible with Python 3.14)
+- **Environment**: Ubuntu 24.04 LTS recommended
+
 ## Code Standards
 
 ### Language and Style
@@ -72,12 +77,13 @@ hello-django/
 ## Technology Stack
 
 ### Backend
-- Django 5.2+
-- Django REST Framework
-- PostgreSQL with psycopg2-binary
-- JWT Authentication (djangorestframework-simplejwt)
-- Django CORS Headers
-- python-decouple for environment variables
+- **Python**: 3.14.0
+- **Django**: 5.2+
+- **Django REST Framework**: 3.15+
+- **PostgreSQL**: 15+ with psycopg2-binary
+- **JWT Authentication**: djangorestframework-simplejwt
+- **Django CORS Headers**: 4.3+
+- **python-decouple**: 3.8+ for environment variables
 
 ### Frontend
 - React 18+
@@ -91,6 +97,52 @@ hello-django/
 - Git with Conventional Commits
 - ESLint & Prettier for JavaScript
 - Black and isort for Python
+- pyenv for Python version management
+
+## Python 3.14.0 Setup
+
+### Installation with pyenv
+```bash
+# Install Python 3.14.0 (development version)
+pyenv install 3.14.0
+
+# Set for project
+cd /home/francho/code/i+d/hello-django
+pyenv local 3.14.0
+
+# Verify installation
+python --version  # Should show: Python 3.14.0
+```
+
+### Backend Environment Setup
+```bash
+cd backend
+
+# Create virtual environment with Python 3.14.0
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Upgrade pip to latest version
+pip install --upgrade pip
+
+# Install core dependencies
+pip install Django>=5.2,<5.3
+pip install djangorestframework>=3.15
+pip install django-cors-headers>=4.3
+pip install djangorestframework-simplejwt>=5.3
+pip install psycopg2-binary>=2.9
+pip install python-decouple>=3.8
+
+# Development tools
+pip install black>=24.0
+pip install isort>=5.13
+pip install pytest-django>=4.8
+
+# Generate requirements
+pip freeze > requirements.txt
+```
 
 ## Workshop Learning Objectives
 
@@ -101,32 +153,42 @@ hello-django/
 5. **Testing**: Comprehensive backend and frontend testing
 6. **Deployment**: Docker containerization
 7. **Copilot Best Practices**: Effective prompting and code generation
+8. **Python 3.14**: Leverage latest Python features
 
 ## Django Backend Patterns
 
-### Models
+### Models (Using Python 3.14 features)
 ```python
 from django.db import models
 from django.utils import timezone
+from typing import Self
 
 class Poll(models.Model):
-    question = models.CharField(max_length=200)
-    pub_date = models.DateTimeField(default=timezone.now)
-    is_active = models.BooleanField(default=True)
+    question: str = models.CharField(max_length=200)
+    pub_date: timezone.datetime = models.DateTimeField(default=timezone.now)
+    is_active: bool = models.BooleanField(default=True)
     
     class Meta:
         ordering = ['-pub_date']
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.question
+    
+    @classmethod
+    def active_polls(cls) -> models.QuerySet[Self]:
+        return cls.objects.filter(is_active=True)
 
 class Choice(models.Model):
-    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='choices')
-    choice_text = models.CharField(max_length=200)
-    votes = models.IntegerField(default=0)
+    poll: Poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='choices')
+    choice_text: str = models.CharField(max_length=200)
+    votes: int = models.IntegerField(default=0)
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.choice_text
+    
+    def increment_vote(self) -> None:
+        self.votes += 1
+        self.save()
 ```
 
 ### Serializers
@@ -145,129 +207,72 @@ class PollSerializer(serializers.ModelSerializer):
     class Meta:
         model = Poll
         fields = ['id', 'question', 'pub_date', 'is_active', 'choices']
+    
+    def validate_question(self, value: str) -> str:
+        if len(value.strip()) < 5:
+            raise serializers.ValidationError("Question must be at least 5 characters long")
+        return value.strip()
 ```
 
-### ViewSets
+### ViewSets (Enhanced with Python 3.14)
 ```python
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.request import Request
+from django.db import transaction
 from .models import Poll, Choice
 from .serializers import PollSerializer, ChoiceSerializer
 
 class PollViewSet(viewsets.ModelViewSet):
-    queryset = Poll.objects.filter(is_active=True)
+    queryset = Poll.active_polls()
     serializer_class = PollSerializer
     
     @action(detail=True, methods=['post'])
-    def vote(self, request, pk=None):
+    def vote(self, request: Request, pk: str = None) -> Response:
         poll = self.get_object()
         choice_id = request.data.get('choice_id')
         
+        if not choice_id:
+            return Response(
+                {'error': 'choice_id is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
-            choice = poll.choices.get(id=choice_id)
-            choice.votes += 1
-            choice.save()
-            return Response({'status': 'vote recorded'})
+            with transaction.atomic():
+                choice = poll.choices.select_for_update().get(id=choice_id)
+                choice.increment_vote()
+                
+            return Response({
+                'status': 'vote recorded',
+                'choice': ChoiceSerializer(choice).data
+            })
         except Choice.DoesNotExist:
             return Response(
                 {'error': 'Choice not found'}, 
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_404_NOT_FOUND
             )
-```
-
-### URL Configuration
-```python
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from . import views
-
-router = DefaultRouter()
-router.register(r'polls', views.PollViewSet)
-
-app_name = 'polls'
-urlpatterns = [
-    path('api/', include(router.urls)),
-]
-```
-
-## React Frontend Patterns
-
-### Components
-```javascript
-import React, { useState, useEffect } from 'react';
-import { getPollsAPI, voteAPI } from '../services/api';
-
-const PollList = () => {
-    const [polls, setPolls] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     
-    useEffect(() => {
-        fetchPolls();
-    }, []);
-    
-    const fetchPolls = async () => {
-        try {
-            setLoading(true);
-            const response = await getPollsAPI();
-            setPolls(response.data);
-        } catch (err) {
-            setError('Failed to fetch polls');
-        } finally {
-            setLoading(false);
+    @action(detail=True, methods=['get'])
+    def results(self, request: Request, pk: str = None) -> Response:
+        poll = self.get_object()
+        total_votes = sum(choice.votes for choice in poll.choices.all())
+        
+        results = {
+            'poll': PollSerializer(poll).data,
+            'total_votes': total_votes,
+            'results': [
+                {
+                    'choice': choice.choice_text,
+                    'votes': choice.votes,
+                    'percentage': (choice.votes / total_votes * 100) if total_votes > 0 else 0
+                }
+                for choice in poll.choices.all().order_by('-votes')
+            ]
         }
-    };
-    
-    const handleVote = async (pollId, choiceId) => {
-        try {
-            await voteAPI(pollId, choiceId);
-            fetchPolls();
-        } catch (err) {
-            setError('Failed to vote');
-        }
-    };
-    
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
-    
-    return (
-        <div className="poll-list">
-            {polls.map(poll => (
-                <PollCard key={poll.id} poll={poll} onVote={handleVote} />
-            ))}
-        </div>
-    );
-};
-
-export default PollList;
-```
-
-### API Service Layer
-```javascript
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
-
-export const getPollsAPI = () => api.get('/polls/');
-export const createPollAPI = (data) => api.post('/polls/', data);
-export const voteAPI = (pollId, choiceId) => 
-    api.post(`/polls/${pollId}/vote/`, { choice_id: choiceId });
+        
+        return Response(results)
 ```
 
 ## Environment Configuration
@@ -275,13 +280,15 @@ export const voteAPI = (pollId, choiceId) =>
 ### Backend Requirements (requirements.txt)
 ```
 Django>=5.2,<5.3
-djangorestframework>=3.14
+djangorestframework>=3.15
 django-cors-headers>=4.3
 djangorestframework-simplejwt>=5.3
 psycopg2-binary>=2.9
 python-decouple>=3.8
-black>=23.0
-isort>=5.12
+black>=24.0
+isort>=5.13
+pytest-django>=4.8
+pytest-cov>=4.0
 ```
 
 ### Backend Environment (.env)
@@ -290,31 +297,11 @@ DEBUG=True
 SECRET_KEY=your-secret-key-here
 DATABASE_URL=postgresql://workshop_user:workshop_pass@localhost:5432/workshop_db
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-ALLOWED_HOSTS=localhost,127.0.0.1
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+PYTHON_VERSION=3.14.0
 ```
 
-### Frontend Package.json Dependencies
-```json
-{
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "axios": "^1.3.0",
-    "@mui/material": "^5.11.0",
-    "@emotion/react": "^11.10.0",
-    "@emotion/styled": "^11.10.0"
-  },
-  "devDependencies": {
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/jest-dom": "^5.16.0",
-    "eslint": "^8.35.0",
-    "prettier": "^2.8.0"
-  }
-}
-```
-
-### Docker Configuration
+### Docker Configuration (Updated for Python 3.14)
 ```yaml
 version: '3.8'
 
@@ -332,7 +319,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: workshop_backend
     ports:
       - "8000:8000"
@@ -340,6 +329,7 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql://workshop_user:workshop_pass@db:5432/workshop_db
+      - PYTHON_VERSION=3.14.0
     volumes:
       - ./backend:/app
 
@@ -357,147 +347,45 @@ volumes:
   postgres_data:
 ```
 
-## Testing Patterns
+### Backend Dockerfile (Python 3.14)
+```dockerfile
+FROM python:3.14-slim
 
-### Django Tests
-```python
-from django.test import TestCase
-from django.urls import reverse
-from rest_framework.test import APITestCase
-from rest_framework import status
-from .models import Poll, Choice
+WORKDIR /app
 
-class PollModelTest(TestCase):
-    def setUp(self):
-        self.poll = Poll.objects.create(question="Test question")
-    
-    def test_string_representation(self):
-        self.assertEqual(str(self.poll), "Test question")
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-class PollAPITest(APITestCase):
-    def setUp(self):
-        self.poll = Poll.objects.create(question="Test question")
-        self.choice = Choice.objects.create(
-            poll=self.poll, 
-            choice_text="Test choice"
-        )
-    
-    def test_get_polls(self):
-        url = reverse('polls:poll-list')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
-    def test_vote(self):
-        url = reverse('polls:poll-vote', kwargs={'pk': self.poll.pk})
-        data = {'choice_id': self.choice.id}
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-```
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-### React Tests
-```javascript
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import PollList from '../components/PollList';
-import * as api from '../services/api';
+COPY . .
 
-jest.mock('../services/api');
+EXPOSE 8000
 
-describe('PollList', () => {
-    const mockPolls = [
-        {
-            id: 1,
-            question: 'Test question?',
-            choices: [
-                { id: 1, choice_text: 'Choice 1', votes: 0 },
-                { id: 2, choice_text: 'Choice 2', votes: 0 }
-            ]
-        }
-    ];
-
-    beforeEach(() => {
-        api.getPollsAPI.mockResolvedValue({ data: mockPolls });
-    });
-
-    test('renders polls correctly', async () => {
-        render(<PollList />);
-        
-        await waitFor(() => {
-            expect(screen.getByText('Test question?')).toBeInTheDocument();
-        });
-    });
-
-    test('handles voting', async () => {
-        api.voteAPI.mockResolvedValue({});
-        render(<PollList />);
-        
-        await waitFor(() => {
-            const voteButton = screen.getByText('Choice 1');
-            fireEvent.click(voteButton);
-        });
-        
-        expect(api.voteAPI).toHaveBeenCalledWith(1, 1);
-    });
-});
-```
-
-## Git Workflow (Conventional Commits)
-
-Format: `<type>(<scope>): <description>`
-
-### Commit Types
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Adding or modifying tests
-- `chore`: Maintenance tasks
-
-### Special Requirement
-Include the user prompt as a comment in each commit:
-
-```bash
-git commit -m "feat(api): add poll voting endpoint
-
-Implement POST endpoint for voting on poll choices with validation
-
-# User prompt: add voting functionality to the polls API"
-```
-
-### Examples
-```bash
-feat(frontend): add poll list component
-fix(backend): handle empty choice validation
-docs: update API documentation
-test(api): add poll viewset tests
-chore(deps): update Django to 5.2.1
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 ```
 
 ## Development Workflow
 
-### Phase 1: Project Setup
+### Phase 1: Python 3.14 Setup
 ```bash
-# Create project structure
-mkdir -p backend frontend database automation
+# Install Python 3.14.0
+pyenv install 3.14.0
+cd /home/francho/code/i+d/hello-django
+pyenv local 3.14.0
 
-# Backend setup
+# Verify Python version
+python --version  # Should show Python 3.14.0
+
+# Create backend environment
 cd backend
 python -m venv venv
 source venv/bin/activate
-pip install django djangorestframework
-django-admin startproject mysite .
-python manage.py startapp polls
-
-# Frontend setup
-cd ../frontend
-npx create-react-app .
-npm install axios react-router-dom @mui/material
-
-# Database setup
-cd ../database
-# Create docker-compose.yml for PostgreSQL
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
 ### Phase 2: Backend Development
@@ -512,79 +400,236 @@ python manage.py runserver
 ### Phase 3: Frontend Development
 ```bash
 cd frontend
+npm install
 npm start
 ```
 
-### Phase 4: Integration & Testing
+### Phase 4: Testing with Python 3.14
 ```bash
-# Backend tests
+# Backend tests with pytest
 cd backend
+pytest --cov=apps/polls --cov-report=html
+
+# Django tests
 python manage.py test
 
 # Frontend tests
 cd frontend
 npm test
-
-# Docker deployment
-cd ..
-docker-compose up --build
 ```
 
-## Copilot Best Practices
+## Python 3.14 Specific Features
 
-### Effective Prompting
-1. **Be Specific**: Include context about the workshop and current component
-2. **Reference Structure**: Mention the file structure and relationships
-3. **Include Examples**: Reference similar patterns already established
-4. **Error Context**: When fixing bugs, include error messages
+### Enhanced Type Hints
+```python
+from typing import Self, TypeVar, Generic
+from collections.abc import Sequence
 
-### Example Prompts
-```
-"Create a Django REST API endpoint for voting on polls following the workshop pattern"
+T = TypeVar('T')
 
-"Add React component for displaying poll results with Material-UI styling"
-
-"Implement JWT authentication for the Django backend with proper middleware"
-
-"Create comprehensive tests for the poll voting functionality"
+class PollManager(Generic[T]):
+    def filter_active(self, polls: Sequence[T]) -> list[T]:
+        return [poll for poll in polls if poll.is_active]
 ```
 
-### Incremental Development
-1. Start with basic models and serializers
-2. Add simple views and URLs
-3. Create basic React components
-4. Integrate API calls
-5. Add authentication
-6. Implement advanced features
-7. Add comprehensive testing
+### Improved Error Messages
+```python
+def vote_on_poll(poll_id: int, choice_id: int) -> dict[str, Any]:
+    try:
+        poll = Poll.objects.get(id=poll_id)
+        choice = poll.choices.get(id=choice_id)
+        choice.increment_vote()
+        return {'status': 'success', 'votes': choice.votes}
+    except Poll.DoesNotExist as e:
+        raise ValueError(f"Poll {poll_id} not found") from e
+    except Choice.DoesNotExist as e:
+        raise ValueError(f"Choice {choice_id} not found in poll {poll_id}") from e
+```
 
-## Quick Start Commands
+## Git Workflow (Conventional Commits)
 
-### Development Environment
+Format: `<type>(<scope>): <description>`
+
+### Commit Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, missing semi colons, etc)
+- `refactor`: Code refactoring (no functional changes)
+- `test`: Adding or modifying tests
+- `chore`: Maintenance tasks (updating dependencies, build tools, etc)
+- `perf`: Performance improvements
+- `ci`: Changes to CI configuration files and scripts
+- `build`: Changes that affect the build system
+
+### Special Requirement - User Prompts History
+Include ALL user prompts since the last commit as comments in the commit message:
+
 ```bash
-# Start PostgreSQL
+git commit -m "feat(api): add poll voting endpoint
+
+Implement POST endpoint for voting on poll choices with validation
+- Add vote action to PollViewSet
+- Include error handling for invalid choices
+- Update API documentation
+
+# User prompts since last commit:
+# 1. add voting functionality to the polls API
+# 2. handle error cases when choice doesn't exist
+# 3. update the API docs"
+```
+
+### Complete Commit Format Template
+```bash
+<type>(<scope>): <short description (50 chars max)>
+
+<detailed description explaining what and why>
+- Bullet point of change 1
+- Bullet point of change 2
+- Bullet point of change 3
+
+# User prompts since last commit:
+# 1. <first prompt>
+# 2. <second prompt>
+# 3. <third prompt>
+# ... (continue for all prompts)
+```
+
+### Examples with User Prompts
+```bash
+feat(database): add PostgreSQL cats database setup
+
+Create complete database infrastructure with sample data
+- Add Dockerfile for PostgreSQL 15 container
+- Create docker-compose.yml with health checks
+- Include create-data.sql with 15 sample cat records
+- Add comprehensive documentation
+
+# User prompts since last commit:
+# 1. Can you help me to create a Dockerfile that helps to run on localhost
+# 2. Create a new PostgreSQL database table called "cats"
+# 3. Insert more than 10 random data representing different cats
+# 4. haz commit
+
+fix(backend): resolve database connection timeout
+
+Update connection pool settings and add retry logic
+- Increase connection timeout to 30 seconds
+- Add automatic retry on connection failure
+- Update error logging for better debugging
+
+# User prompts since last commit:
+# 1. the database keeps timing out
+# 2. add retry logic for failed connections
+# 3. improve error messages
+
+docs: update README with setup instructions
+
+Enhance documentation for better developer onboarding
+- Add step-by-step installation guide
+- Include troubleshooting section
+- Add examples for common use cases
+
+# User prompts since last commit:
+# 1. update the README with better instructions
+# 2. add troubleshooting section
+```
+
+### Scope Guidelines
+- **backend**: Django backend changes
+- **frontend**: React frontend changes
+- **database**: Database schema, migrations, or data changes
+- **api**: API endpoints and serializers
+- **auth**: Authentication and authorization
+- **tests**: Test files and testing configuration
+- **docs**: Documentation updates
+- **ci**: Continuous integration changes
+- **docker**: Container and deployment configuration
+
+### Breaking Changes
+For breaking changes, add `!` after the type/scope:
+
+```bash
+feat(api)!: change user authentication endpoint
+
+Modify authentication to use JWT tokens instead of sessions
+- BREAKING: Remove session-based authentication
+- Add JWT token generation and validation
+- Update all API endpoints to require JWT header
+
+# User prompts since last commit:
+# 1. switch to JWT authentication
+# 2. remove session-based auth completely
+```
+
+### Commit Message Best Practices
+1. **Subject line**: 50 characters or less, imperative mood
+2. **Body**: Explain what and why, not how
+3. **User prompts**: Include all prompts since last commit
+4. **Breaking changes**: Clearly marked with `!` and described
+5. **Co-authors**: Use `Co-authored-by:` for pair programming
+
+Include the user prompt as a comment in each commit:
+
+```bash
+git commit -m "feat(backend): upgrade to Python 3.14.0
+
+Update Django models and views to use Python 3.14 features
+- Enhanced type hints with Self and TypeVar
+- Improved error handling
+- Updated requirements.txt
+
+# User prompts since last commit:
+# 1. vamos a usar python 3.14.0 actualiza instrucciones"
+```
+
+## Quick Start Commands (Python 3.14)
+
+### Complete Setup
+```bash
+# 1. Install Python 3.14.0
+pyenv install 3.14.0
+cd /home/francho/code/i+d/hello-django
+pyenv local 3.14.0
+
+# 2. Backend setup
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install Django>=5.2 djangorestframework>=3.15
+pip install django-cors-headers djangorestframework-simplejwt
+pip install psycopg2-binary python-decouple
+pip install black isort pytest-django
+pip freeze > requirements.txt
+
+# 3. Start PostgreSQL
 docker-compose -f database/docker-compose.yml up -d
 
-# Backend
-cd backend
-source venv/bin/activate
-pip install -r requirements.txt
+# 4. Django setup
+django-admin startproject mysite .
+python manage.py startapp apps/polls
 python manage.py migrate
 python manage.py runserver
 
-# Frontend (new terminal)
+# 5. Frontend (new terminal)
 cd frontend
-npm install
+npx create-react-app .
+npm install axios react-router-dom @mui/material
 npm start
 ```
 
-### Production Deployment
+### Verification Commands
 ```bash
-# Build and run all services
-docker-compose up --build
+# Verify Python version
+python --version  # Should show: Python 3.14.0
 
-# Run in background
-docker-compose up -d
+# Verify Django
+python -c "import django; print(f'Django {django.get_version()}')"
+
+# Verify all services
+curl http://localhost:8000/api/polls/  # Django API
+curl http://localhost:3000/           # React frontend
 ```
 
-Remember: This workshop demonstrates GitHub Copilot's capabilities in full-stack development. Use clear, specific prompts and build incrementally to get the best results from Copilot.
+Remember: Python 3.14.0 is in development, so ensure compatibility with all dependencies and be prepared for potential alpha/beta issues.
