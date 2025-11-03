@@ -463,7 +463,21 @@ Format: `<type>(<scope>): <description>`
 - `build`: Changes that affect the build system
 
 ### Special Requirement - User Prompts History
-Include ALL user prompts since the last commit as comments in the commit message:
+Include ONLY meaningful user prompts since the last commit as comments in the commit message. 
+
+**Exclude procedural prompts** such as:
+- "haz commit" / "make commit" / "commit changes"
+- "run tests" / "check status"
+- "fix typo" / "format code"
+- Basic navigation or file operations
+
+**Include substantive prompts** such as:
+- Feature requests and implementations
+- Bug reports and fixes
+- Configuration changes
+- Architecture decisions
+- Documentation updates
+- Technical questions and solutions
 
 ```bash
 git commit -m "feat(api): add poll voting endpoint
@@ -476,7 +490,8 @@ Implement POST endpoint for voting on poll choices with validation
 # User prompts since last commit:
 # 1. add voting functionality to the polls API
 # 2. handle error cases when choice doesn't exist
-# 3. update the API docs"
+# 3. update the API docs
+# (excluded: 'haz commit', 'run the server')"
 ```
 
 ### Complete Commit Format Template
@@ -489,10 +504,11 @@ Implement POST endpoint for voting on poll choices with validation
 - Bullet point of change 3
 
 # User prompts since last commit:
-# 1. <first prompt>
-# 2. <second prompt>
-# 3. <third prompt>
-# ... (continue for all prompts)
+# 1. <first meaningful prompt>
+# 2. <second meaningful prompt>
+# 3. <third meaningful prompt>
+# ... (continue for all substantive prompts)
+# (excluded: procedural prompts like 'haz commit', 'run tests')
 ```
 
 ### Examples with User Prompts
@@ -509,7 +525,7 @@ Create complete database infrastructure with sample data
 # 1. Can you help me to create a Dockerfile that helps to run on localhost
 # 2. Create a new PostgreSQL database table called "cats"
 # 3. Insert more than 10 random data representing different cats
-# 4. haz commit
+# (excluded: 'haz commit', 'run the server')
 
 fix(backend): resolve database connection timeout
 
@@ -522,6 +538,7 @@ Update connection pool settings and add retry logic
 # 1. the database keeps timing out
 # 2. add retry logic for failed connections
 # 3. improve error messages
+# (excluded: 'check status', 'run tests')
 
 docs: update README with setup instructions
 
@@ -533,6 +550,7 @@ Enhance documentation for better developer onboarding
 # User prompts since last commit:
 # 1. update the README with better instructions
 # 2. add troubleshooting section
+# (excluded: 'make commit', 'format code')
 ```
 
 ### Scope Guidelines
