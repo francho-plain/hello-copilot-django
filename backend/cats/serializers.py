@@ -55,7 +55,27 @@ class CatSerializer(serializers.ModelSerializer):
         if len(value.strip()) < 2:
             raise serializers.ValidationError("Cat name must be at least 2 characters long")
         
-        return value.strip().title()
+        # Check for duplicate names (only during creation)
+        cleaned_name = value.strip().title()
+        if not self.instance:  # Creating new cat
+            if Cat.objects.filter(name__iexact=cleaned_name).exists():
+                raise serializers.ValidationError(
+                    f"A cat with the name '{cleaned_name}' already exists. Please choose a different name."
+                )
+        
+        return cleaned_name
+    
+    def validate_breed(self, value: str) -> str:
+        """Validate cat breed."""
+        if value and len(value.strip()) < 2:
+            raise serializers.ValidationError("Breed name must be at least 2 characters long")
+        return value.strip().title() if value else value
+    
+    def validate_color(self, value: str) -> str:
+        """Validate cat color."""
+        if value and len(value.strip()) < 2:
+            raise serializers.ValidationError("Color description must be at least 2 characters long")
+        return value.strip().title() if value else value
     
     def validate_age(self, value: int) -> int:
         """Validate cat age."""
@@ -74,6 +94,12 @@ class CatSerializer(serializers.ModelSerializer):
             if value > 20:  # Very large cat would be around 20kg
                 raise serializers.ValidationError("Weight seems unrealistic for a cat")
         return value
+    
+    def validate_description(self, value: str) -> str:
+        """Validate cat description."""
+        if value and len(value.strip()) < 10:
+            raise serializers.ValidationError("Description must be at least 10 characters long")
+        return value.strip() if value else value
     
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """Cross-field validation."""

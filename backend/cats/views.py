@@ -75,6 +75,58 @@ class CatViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by(self.ordering[0])
     
+    def create(self, request: Request) -> Response:
+        """
+        Create a new cat with user-defined custom parameters.
+        
+        POST /api/cats/
+        Body: {
+            "name": "Fluffy",
+            "breed": "Persian",
+            "age": 3,
+            "color": "White",
+            "weight": 4.2,
+            "is_neutered": true,
+            "description": "A friendly and calm cat"
+        }
+        """
+        serializer = self.get_serializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    # Create the cat
+                    cat = serializer.save()
+                    
+                    # Return success response with created cat data
+                    response_serializer = CatSerializer(cat)
+                    return Response(
+                        {
+                            'status': 'success',
+                            'message': f'Cat "{cat.name}" has been successfully added to the database',
+                            'cat': response_serializer.data
+                        },
+                        status=status.HTTP_201_CREATED
+                    )
+                    
+            except Exception as e:
+                return Response(
+                    {
+                        'status': 'error',
+                        'message': f'Failed to create cat: {str(e)}'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            return Response(
+                {
+                    'status': 'error',
+                    'message': 'Invalid data provided',
+                    'errors': serializer.errors
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
     @action(detail=True, methods=['post'])
     def adopt(self, request: Request, pk: str = None) -> Response:
         """
