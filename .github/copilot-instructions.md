@@ -92,6 +92,62 @@ hello-django/
 - Material-UI or Tailwind CSS for styling
 - Jest and React Testing Library
 
+## Frontend Component Structure
+
+**CRITICAL: All React components MUST follow this folder structure:**
+
+```
+frontend/src/components/ComponentName/
+├── ComponentName.tsx          # Main component file
+├── ComponentName.module.css   # Component-specific styles
+├── ComponentName.test.tsx     # Unit tests
+└── index.ts                   # Export file for clean imports
+```
+
+### Component Organization Rules:
+1. **One Component Per Folder**: Each component gets its own folder named exactly like the component
+2. **Self-Contained**: All files related to a component (TypeScript, CSS, tests) live in the same folder
+3. **Clean Imports**: Use index.ts files to export the default component
+4. **Consistent Naming**: 
+   - Folder: `PascalCase` (e.g., `CatList`)
+   - Component file: `PascalCase.tsx` (e.g., `CatList.tsx`)
+   - CSS file: `PascalCase.module.css` (e.g., `CatList.module.css`)
+   - Test file: `PascalCase.test.tsx` (e.g., `CatList.test.tsx`)
+   - Index file: `index.ts`
+
+### Example Component Structure:
+```
+src/components/CatList/
+├── CatList.tsx               # import styles from './CatList.module.css'
+├── CatList.module.css        # Component styles
+├── CatList.test.tsx          # Jest/React Testing Library tests
+└── index.ts                  # export { default } from './CatList';
+```
+
+### Import Patterns:
+```tsx
+// ✅ Correct: Clean import from component folder
+import CatList from './components/CatList';
+
+// ❌ Incorrect: Direct file import
+import CatList from './components/CatList/CatList';
+```
+
+### CSS Module Imports:
+```tsx
+// ✅ Correct: Relative import within component folder
+import styles from './CatList.module.css';
+
+// ❌ Incorrect: Styles folder import
+import styles from '../../styles/CatList.module.css';
+```
+
+This structure ensures:
+- Better code organization and maintainability
+- Easy component discovery and navigation
+- Colocation of related files
+- Scalable architecture for larger applications
+
 ### Development Tools
 - Docker & Docker Compose
 - Git with Conventional Commits

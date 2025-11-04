@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { CatCreate } from '../types/Cat';
-import catService from '../services/catService';
-import styles from '../styles/CatForm.module.css';
+import { CatCreate } from '../../types/Cat';
+import catService from '../../services/catService';
+import styles from './CatForm.module.css';
 
 interface CatFormProps {
   onCancel: () => void;

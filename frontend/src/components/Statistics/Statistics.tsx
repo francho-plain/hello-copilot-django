@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { CatStatistics } from '../types/Cat';
-import catService from '../services/catService';
-import styles from '../styles/Statistics.module.css';
+import { CatStatistics } from '../../types/Cat';
+import catService from '../../services/catService';
+import styles from './Statistics.module.css';
 
 const Statistics: React.FC = () => {
   const [stats, setStats] = useState<CatStatistics | null>(null);

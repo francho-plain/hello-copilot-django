@@ -38,9 +38,9 @@ export interface CatStatistics {
   adopted_cats: number;
   available_cats: number;
   adoption_rate: number;
-  average_age: number;
-  youngest_age: number;
-  oldest_age: number;
+  average_age: number | null;
+  youngest_age: number | null;
+  oldest_age: number | null;
   neutered_cats: number;
   breeds_count: number;
   recent_adoptions: number;

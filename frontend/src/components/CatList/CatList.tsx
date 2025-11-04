@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Cat, CatListResponse } from '../types/Cat';
-import catService from '../services/catService';
-import styles from '../styles/CatList.module.css';
+import { Cat, CatListResponse } from '../../types/Cat';
+import catService from '../../services/catService';
+import styles from './CatList.module.css';
 
 interface CatListProps {
   onAddNew: () => void;
