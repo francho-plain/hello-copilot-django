@@ -63,6 +63,36 @@ yarn-error.log*
 coverage/
 .nyc_output
 
+# Python Coverage
+.coverage
+coverage.xml
+htmlcov/
+.coverage.*
+.pytest_cache/
+
+# SonarQube
+.scannerwork/
+sonar-project-*.properties
+.sonar/
+
+# Test and Analysis Reports
+test-report.xml
+*-report.xml
+*-report.json
+bandit-report.json
+pylint-report.txt
+coverage-summary.json
+junit.xml
+test-results.xml
+
+# Security and Sensitive Files
+*.pem
+*.key
+*.crt
+*.p12
+.secrets/
+secrets.json
+
 # Dependency directories
 node_modules/
 jspm_packages/
@@ -97,3 +127,27 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Build artifacts
+*.tar.gz
+*.zip
+*.jar
+*.war
+
+# Quality Analysis Tools
+.bandit
+.pylint
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Backup files
+*.bak
+*.backup
+*~
