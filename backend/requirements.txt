@@ -8,3 +8,6 @@ black>=24.0
 isort>=5.13
 pytest-django>=4.8
 pytest-cov>=4.0
+bandit>=1.7
+pylint>=3.0
+coverage>=7.0

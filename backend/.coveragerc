@@ -1,0 +1,27 @@
+[run]
+source = cats
+omit =
+    */migrations/*
+    */venv/*
+    */__pycache__/*
+    */tests.py
+    manage.py
+    */settings.py
+    */wsgi.py
+    */asgi.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+[xml]
+output = coverage.xml

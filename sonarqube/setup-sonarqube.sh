@@ -41,10 +41,23 @@ wait_for_sonarqube() {
 }
 
 # Step 1: Start SonarQube
+
 echo "🚀 Step 1: Starting SonarQube with Docker Compose"
 cd sonarqube
-docker compose down --volumes 2>/dev/null || true
-docker compose up -d
+
+if [ "${RESET_SONAR:-false}" = "true" ]; then
+  echo "⚠️ RESET_SONAR=true -> removing containers and volumes..."
+  docker compose down --volumes || true
+else
+  # If containers already exist, just ensure they're up; do not remove volumes
+  if [ -n "$(docker compose ps -q 2>/dev/null)" ]; then
+    echo "ℹ️ SonarQube containers exist -> running 'docker compose up -d' to ensure they're running"
+    docker compose up -d
+  else
+    echo "ℹ️ No existing SonarQube containers -> starting fresh without removing volumes"
+    docker compose up -d
+  fi
+fi
 
 # Wait for SonarQube to be ready
 if ! wait_for_sonarqube; then
@@ -167,10 +180,20 @@ sleep 10
 echo -e "${YELLOW}Setting up authentication for analysis...${NC}"
 
 # First try with admin/admin (default), then try to create a token
-TOKEN_RESPONSE=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=hello-django-analysis&type=GLOBAL_ANALYSIS_TOKEN" 2>/dev/null || echo "failed")
+if [ -f "./sonarqube/.sonar_token" ]; then
+  TOKEN="$(< "./sonarqube/.sonar_token")"
+else
+  TOKEN_RESPONSE=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=hello-django-analysis&type=GLOBAL_ANALYSIS_TOKEN" 2>/dev/null || echo "failed")
 
-if [[ "$TOKEN_RESPONSE" == *"token"* ]]; then
+  if [[ "$TOKEN_RESPONSE" == *"token"* ]]; then
     TOKEN=$(echo $TOKEN_RESPONSE | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    echo $TOKEN > ./sonarqube/.sonar_token
+  fi
+fi
+
+echo "🎯🎯 $TOKEN 🎯🎯"
+
+if [ -n "$TOKEN" ]; then
     echo -e "${GREEN}✅ Using generated token for analysis${NC}"
     # Run SonarScanner with generated token
     sonar-scanner \
