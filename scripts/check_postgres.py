@@ -70,7 +70,7 @@ class PostgreSQLChecker:
         self.connection: Optional[psycopg2.extensions.connection] = None
         
         # Display configuration (without password)
-        print(f"🔧 Database Configuration:")
+        print("🔧 Database Configuration:")
         print(f"  Host: {self.connection_params['host']}")
         print(f"  Port: {self.connection_params['port']}")
         print(f"  Database: {self.connection_params['database']}")
@@ -321,7 +321,7 @@ Created: {cat['created_at']}
             available = adoption['available']
             adoption_rate = (adopted / total * 100) if total > 0 else 0
             
-            print(f"\n🏠 Adoption Status:")
+            print("\n🏠 Adoption Status:")
             print(f"  Total cats: {total}")
             print(f"  Adopted: {adopted} ({adoption_rate:.1f}%)")
             print(f"  Available: {available}")
@@ -329,7 +329,7 @@ Created: {cat['created_at']}
         # Age statistics
         if 'age' in stats:
             age = stats['age']
-            print(f"\n🎂 Age Distribution:")
+            print("\n🎂 Age Distribution:")
             print(f"  Youngest: {age['youngest']} years")
             print(f"  Oldest: {age['oldest']} years")
             print(f"  Average: {age['average_age']} years")
@@ -337,13 +337,13 @@ Created: {cat['created_at']}
         # Lifestyle stats
         if 'neuter' in stats:
             neuter = stats['neuter']
-            print(f"\n✂️ Neuter Status:")
+            print("\n✂️ Neuter Status:")
             print(f"  Neutered cats: {neuter['neutered']}")
             print(f"  Intact cats: {neuter['intact']}")
         
         # Breed distribution
         if 'breeds' in stats:
-            print(f"\n🐱 Breed Distribution:")
+            print("\n🐱 Breed Distribution:")
             for breed in stats['breeds'][:5]:  # Top 5 breeds
                 print(f"  {breed['breed']}: {breed['count']} cats")
     

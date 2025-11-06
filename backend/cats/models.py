@@ -23,7 +23,6 @@ class Cat(models.Model):
     breed = models.CharField(
         max_length=100, 
         blank=True, 
-        null=True,
         help_text="The cat's breed (optional)"
     )
     
@@ -36,7 +35,6 @@ class Cat(models.Model):
     color = models.CharField(
         max_length=50, 
         blank=True, 
-        null=True,
         help_text="The cat's color/pattern"
     )
     
@@ -58,7 +56,6 @@ class Cat(models.Model):
     owner_name = models.CharField(
         max_length=100, 
         blank=True, 
-        null=True,
         help_text="Current owner's name (if adopted)"
     )
     
@@ -71,7 +68,6 @@ class Cat(models.Model):
     # Additional information
     description = models.TextField(
         blank=True, 
-        null=True,
         help_text="Description of the cat's personality and characteristics"
     )
     
