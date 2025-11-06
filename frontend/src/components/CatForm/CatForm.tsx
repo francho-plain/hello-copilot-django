@@ -102,10 +102,11 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         )}
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>
+          <label htmlFor="cat-name" className={styles.label}>
             Name <span className={styles.required}>*</span>
           </label>
           <input
+            id="cat-name"
             type="text"
             name="name"
             value={formData.name}
@@ -119,8 +120,9 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Breed</label>
+          <label htmlFor="cat-breed" className={styles.label}>Breed</label>
           <input
+            id="cat-breed"
             type="text"
             name="breed"
             value={formData.breed}
@@ -132,8 +134,9 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Age (years)</label>
+          <label htmlFor="cat-age" className={styles.label}>Age (years)</label>
           <input
+            id="cat-age"
             type="number"
             name="age"
             value={formData.age || ''}
@@ -148,8 +151,9 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Color</label>
+          <label htmlFor="cat-color" className={styles.label}>Color</label>
           <input
+            id="cat-color"
             type="text"
             name="color"
             value={formData.color}
@@ -161,8 +165,9 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Weight (kg)</label>
+          <label htmlFor="cat-weight" className={styles.label}>Weight (kg)</label>
           <input
+            id="cat-weight"
             type="number"
             name="weight"
             value={formData.weight || ''}
@@ -180,13 +185,14 @@ const CatForm: React.FC<CatFormProps> = ({ onCancel, onSuccess }) => {
         <div className={styles.formGroup}>
           <div className={styles.checkbox}>
             <input
+              id="cat-is-neutered"
               type="checkbox"
               name="is_neutered"
               checked={formData.is_neutered}
               onChange={handleChange}
               className={styles.checkboxInput}
             />
-            <label className={styles.checkboxLabel}>Cat is neutered/spayed</label>
+            <label htmlFor="cat-is-neutered" className={styles.checkboxLabel}>Cat is neutered/spayed</label>
           </div>
           {errors.is_neutered && <span className={styles.error}>{errors.is_neutered[0]}</span>}
         </div>
