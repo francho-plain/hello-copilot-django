@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     # Local apps
     'cats.apps.CatsConfig',
 ]
@@ -172,6 +173,7 @@ REST_FRAMEWORK = {
     ],
     'SEARCH_PARAM': 'search',
     'ORDERING_PARAM': 'ordering',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # CORS Configuration
@@ -243,4 +245,13 @@ LOGGING = {
             'propagate': False,
         },
     },
+    
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Cats API',
+    'DESCRIPTION': 'API for managing cat-related data',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OTHER SETTINGS
 }
