@@ -5,22 +5,20 @@ This module contains comprehensive tests for the Cat model, serializers, and vie
 """
 
 import json
+from datetime import date, timedelta
 from decimal import Decimal
+
 from django.test import TestCase
-from django.urls import reverse as _django_reverse, NoReverseMatch
+from django.urls import NoReverseMatch
+from django.urls import reverse as _django_reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
-from datetime import date, timedelta
 
 from .models import Cat
-from .serializers import (
-    CatSerializer,
-    CatListSerializer,
-    CatStatisticsSerializer,
-    AdoptCatSerializer,
-    BreedStatisticsSerializer,
-)
+from .serializers import (AdoptCatSerializer, BreedStatisticsSerializer,
+                          CatListSerializer, CatSerializer,
+                          CatStatisticsSerializer)
 
 
 def reverse(name, *args, **kwargs):
@@ -31,7 +29,7 @@ def reverse(name, *args, **kwargs):
     """
     candidates = [
         name,
-        name.replace('cat-', 'cats-'),
+        name.replace("cat-", "cats-"),
         f"cats:{name}",
         f"cats:{name.replace('cat-', 'cats-')}",
     ]
@@ -60,10 +58,10 @@ def _parse_response_data(response):
             return []
 
     if isinstance(data, dict):
-        if 'results' in data and isinstance(data['results'], (list, tuple)):
-            return data['results']
+        if "results" in data and isinstance(data["results"], (list, tuple)):
+            return data["results"]
         # some endpoints use 'data' or 'items'
-        for key in ('data', 'items'):
+        for key in ("data", "items"):
             if key in data and isinstance(data[key], (list, tuple)):
                 return data[key]
         # single-object dict -> wrap
@@ -90,7 +88,7 @@ def _get_single_object(response):
         return data
     if isinstance(data, (list, tuple)) and data:
         return data[0]
-    raise AssertionError('Response did not contain a JSON object')
+    raise AssertionError("Response did not contain a JSON object")
 
 
 class CatModelTest(TestCase):
@@ -103,9 +101,9 @@ class CatModelTest(TestCase):
             breed="Persian",
             age=3,
             color="White",
-            weight=Decimal('4.5'),
+            weight=Decimal("4.5"),
             is_neutered=True,
-            description="A friendly and calm cat"
+            description="A friendly and calm cat",
         )
 
     def test_cat_creation(self):
@@ -114,7 +112,7 @@ class CatModelTest(TestCase):
         self.assertEqual(self.cat.breed, "Persian")
         self.assertEqual(self.cat.age, 3)
         self.assertEqual(self.cat.color, "White")
-        self.assertEqual(self.cat.weight, Decimal('4.5'))
+        self.assertEqual(self.cat.weight, Decimal("4.5"))
         self.assertTrue(self.cat.is_neutered)
         self.assertFalse(self.cat.is_adopted)
 
@@ -152,7 +150,13 @@ class CatModelTest(TestCase):
         """Test custom manager methods."""
         # Create more cats
         Cat.objects.create(name="Fluffy", breed="Siamese", age=2)
-        Cat.objects.create(name="Shadow", breed="Persian", age=1, owner_name="Jane", adoption_date=date.today())
+        Cat.objects.create(
+            name="Shadow",
+            breed="Persian",
+            age=1,
+            owner_name="Jane",
+            adoption_date=date.today(),
+        )
 
         # Test available cats
         available = Cat.available_cats()
@@ -202,7 +206,7 @@ class CatModelTest(TestCase):
             cat.clean()
 
         # Test negative weight
-        cat = Cat(name="Test", weight=Decimal('-1.0'))
+        cat = Cat(name="Test", weight=Decimal("-1.0"))
         with self.assertRaises(ValueError):
             cat.clean()
 
@@ -222,13 +226,13 @@ class CatSerializerTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.cat_data = {
-            'name': 'Luna',
-            'breed': 'Maine Coon',
-            'age': 4,
-            'color': 'Gray',
-            'weight': Decimal('6.2'),
-            'is_neutered': False,
-            'description': 'A large and friendly Maine Coon cat'
+            "name": "Luna",
+            "breed": "Maine Coon",
+            "age": 4,
+            "color": "Gray",
+            "weight": Decimal("6.2"),
+            "is_neutered": False,
+            "description": "A large and friendly Maine Coon cat",
         }
         self.cat = Cat.objects.create(**self.cat_data)
 
@@ -237,45 +241,45 @@ class CatSerializerTest(TestCase):
         serializer = CatSerializer(self.cat)
         data = serializer.data
 
-        self.assertEqual(data['name'], 'Luna')
-        self.assertEqual(data['breed'], 'Maine Coon')
-        self.assertEqual(data['age'], 4)
-        self.assertEqual(data['color'], 'Gray')
-        self.assertEqual(data['weight'], '6.20')  # Decimal serialized as string
-        self.assertFalse(data['is_neutered'])
-        self.assertEqual(data['is_adopted'], False)
-        self.assertEqual(data['age_display'], '4 years old')
-        self.assertEqual(data['weight_display'], '6.2 kg')
-        self.assertEqual(data['status_display'], 'Available for adoption')
+        self.assertEqual(data["name"], "Luna")
+        self.assertEqual(data["breed"], "Maine Coon")
+        self.assertEqual(data["age"], 4)
+        self.assertEqual(data["color"], "Gray")
+        self.assertEqual(data["weight"], "6.20")  # Decimal serialized as string
+        self.assertFalse(data["is_neutered"])
+        self.assertEqual(data["is_adopted"], False)
+        self.assertEqual(data["age_display"], "4 years old")
+        self.assertEqual(data["weight_display"], "6.2 kg")
+        self.assertEqual(data["status_display"], "Available for adoption")
 
     def test_cat_serializer_validation(self):
         """Test CatSerializer validation."""
         # Test empty name
         invalid_data = self.cat_data.copy()
-        invalid_data['name'] = ''
+        invalid_data["name"] = ""
         serializer = CatSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('name', serializer.errors)
+        self.assertIn("name", serializer.errors)
 
         # Test short name
-        invalid_data['name'] = 'A'
+        invalid_data["name"] = "A"
         serializer = CatSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
 
         # Test negative age
         invalid_data = self.cat_data.copy()
-        invalid_data['name'] = 'Valid Name'
-        invalid_data['age'] = -1
+        invalid_data["name"] = "Valid Name"
+        invalid_data["age"] = -1
         serializer = CatSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('age', serializer.errors)
+        self.assertIn("age", serializer.errors)
 
         # Test negative weight
-        invalid_data['age'] = 2
-        invalid_data['weight'] = Decimal('-1.0')
+        invalid_data["age"] = 2
+        invalid_data["weight"] = Decimal("-1.0")
         serializer = CatSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('weight', serializer.errors)
+        self.assertIn("weight", serializer.errors)
 
     def test_cat_list_serializer(self):
         """Test CatListSerializer."""
@@ -283,22 +287,31 @@ class CatSerializerTest(TestCase):
         data = serializer.data
 
         # Should have fewer fields than full serializer
-        expected_fields = {'id', 'name', 'breed', 'age', 'color', 'is_adopted', 'status_display', 'created_at'}
+        expected_fields = {
+            "id",
+            "name",
+            "breed",
+            "age",
+            "color",
+            "is_adopted",
+            "status_display",
+            "created_at",
+        }
         self.assertEqual(set(data.keys()), expected_fields)
 
     def test_adopt_cat_serializer(self):
         """Test AdoptCatSerializer."""
-        valid_data = {'owner_name': 'John Doe', 'adoption_date': '2024-01-15'}
+        valid_data = {"owner_name": "John Doe", "adoption_date": "2024-01-15"}
         serializer = AdoptCatSerializer(data=valid_data)
         self.assertTrue(serializer.is_valid())
 
         # Test without adoption_date (should be valid)
-        valid_data_no_date = {'owner_name': 'Jane Smith'}
+        valid_data_no_date = {"owner_name": "Jane Smith"}
         serializer = AdoptCatSerializer(data=valid_data_no_date)
         self.assertTrue(serializer.is_valid())
 
         # Test empty owner name
-        invalid_data = {'owner_name': ''}
+        invalid_data = {"owner_name": ""}
         serializer = AdoptCatSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
 
@@ -313,34 +326,34 @@ class CatAPITest(APITestCase):
             breed="Persian",
             age=3,
             color="White",
-            weight=Decimal('4.5'),
+            weight=Decimal("4.5"),
             is_neutered=True,
-            description="A friendly Persian cat"
+            description="A friendly Persian cat",
         )
         self.cat2 = Cat.objects.create(
             name="Mittens",
             breed="Siamese",
             age=2,
             color="Brown",
-            weight=Decimal('3.8'),
+            weight=Decimal("3.8"),
             is_neutered=False,
-            description="An energetic Siamese cat"
+            description="An energetic Siamese cat",
         )
         self.cat3 = Cat.objects.create(
             name="Shadow",
             breed="Persian",
             age=1,
             color="Black",
-            weight=Decimal('4.0'),
+            weight=Decimal("4.0"),
             is_neutered=True,
             owner_name="Alice",
             adoption_date=date.today(),
-            description="A shy black cat"
+            description="A shy black cat",
         )
 
     def test_list_cats(self):
         """Test GET /api/cats/"""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -349,86 +362,86 @@ class CatAPITest(APITestCase):
 
         # Check that we get CatListSerializer format
         cat_data = data[0]
-        self.assertIn('id', cat_data)
-        self.assertIn('name', cat_data)
-        self.assertIn('is_adopted', cat_data)
-        self.assertIn('status_display', cat_data)
+        self.assertIn("id", cat_data)
+        self.assertIn("name", cat_data)
+        self.assertIn("is_adopted", cat_data)
+        self.assertIn("status_display", cat_data)
 
     def test_create_cat(self):
         """Test POST /api/cats/"""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
         data = {
-            'name': 'Luna',
-            'breed': 'Maine Coon',
-            'age': 4,
-            'color': 'Gray',
-            'weight': '6.2',
-            'is_neutered': False,
-            'description': 'A large and friendly Maine Coon cat'
+            "name": "Luna",
+            "breed": "Maine Coon",
+            "age": 4,
+            "color": "Gray",
+            "weight": "6.2",
+            "is_neutered": False,
+            "description": "A large and friendly Maine Coon cat",
         }
 
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Check response structure
-        self.assertIn('status', response.data)
-        self.assertIn('message', response.data)
-        self.assertIn('cat', response.data)
-        self.assertEqual(response.data['status'], 'success')
+        self.assertIn("status", response.data)
+        self.assertIn("message", response.data)
+        self.assertIn("cat", response.data)
+        self.assertEqual(response.data["status"], "success")
 
         # Verify cat was created
-        luna = Cat.objects.get(name='Luna')
-        self.assertEqual(luna.breed, 'Maine Coon')
+        luna = Cat.objects.get(name="Luna")
+        self.assertEqual(luna.breed, "Maine Coon")
         self.assertEqual(luna.age, 4)
 
     def test_create_cat_invalid_data(self):
         """Test POST /api/cats/ with invalid data"""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
         data = {
-            'name': '',  # Invalid empty name
-            'breed': 'Maine Coon',
-            'age': 4,
+            "name": "",  # Invalid empty name
+            "breed": "Maine Coon",
+            "age": 4,
         }
 
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('status', response.data)
-        self.assertEqual(response.data['status'], 'error')
-        self.assertIn('errors', response.data)
+        self.assertIn("status", response.data)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("errors", response.data)
 
     def test_retrieve_cat(self):
         """Test GET /api/cats/{id}/"""
-        url = reverse('cat-detail', kwargs={'pk': self.cat1.pk})
+        url = reverse("cat-detail", kwargs={"pk": self.cat1.pk})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], 'Whiskers')
-        self.assertEqual(response.data['breed'], 'Persian')
+        self.assertEqual(response.data["name"], "Whiskers")
+        self.assertEqual(response.data["breed"], "Persian")
 
     def test_update_cat(self):
         """Test PUT /api/cats/{id}/"""
-        url = reverse('cat-detail', kwargs={'pk': self.cat1.pk})
+        url = reverse("cat-detail", kwargs={"pk": self.cat1.pk})
         data = {
-            'name': 'Whiskers Updated',
-            'breed': 'Persian',
-            'age': 4,
-            'color': 'White',
-            'weight': '4.5',
-            'is_neutered': True,
-            'description': 'An updated description'
+            "name": "Whiskers Updated",
+            "breed": "Persian",
+            "age": 4,
+            "color": "White",
+            "weight": "4.5",
+            "is_neutered": True,
+            "description": "An updated description",
         }
 
-        response = self.client.put(url, data, format='json')
+        response = self.client.put(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify update
         self.cat1.refresh_from_db()
-        self.assertEqual(self.cat1.name, 'Whiskers Updated')
+        self.assertEqual(self.cat1.name, "Whiskers Updated")
         self.assertEqual(self.cat1.age, 4)
 
     def test_delete_cat(self):
         """Test DELETE /api/cats/{id}/"""
-        url = reverse('cat-detail', kwargs={'pk': self.cat1.pk})
+        url = reverse("cat-detail", kwargs={"pk": self.cat1.pk})
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
@@ -439,35 +452,34 @@ class CatAPITest(APITestCase):
 
     def test_adopt_cat(self):
         """Test POST /api/cats/{id}/adopt/"""
-        url = reverse('cat-adopt', kwargs={'pk': self.cat1.pk})
-        data = {
-            'owner_name': 'John Doe',
-            'adoption_date': '2024-01-15'
-        }
+        url = reverse("cat-adopt", kwargs={"pk": self.cat1.pk})
+        data = {"owner_name": "John Doe", "adoption_date": "2024-01-15"}
 
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify adoption
         self.cat1.refresh_from_db()
-        self.assertEqual(self.cat1.owner_name, 'John Doe')
+        self.assertEqual(self.cat1.owner_name, "John Doe")
         self.assertEqual(self.cat1.adoption_date, date(2024, 1, 15))
         self.assertTrue(self.cat1.is_adopted)
 
     def test_adopt_already_adopted_cat(self):
         """Test adopting a cat that's already adopted."""
-        url = reverse('cat-adopt', kwargs={'pk': self.cat3.pk})  # cat3 is already adopted
-        data = {'owner_name': 'New Owner'}
+        url = reverse(
+            "cat-adopt", kwargs={"pk": self.cat3.pk}
+        )  # cat3 is already adopted
+        data = {"owner_name": "New Owner"}
 
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.data)
+        self.assertIn("error", response.data)
 
     def test_return_to_shelter(self):
         """Test POST /api/cats/{id}/return_to_shelter/"""
-        url = reverse('cat-return-to-shelter', kwargs={'pk': self.cat3.pk})
+        url = reverse("cat-return-to-shelter", kwargs={"pk": self.cat3.pk})
 
-        response = self.client.post(url, format='json')
+        response = self.client.post(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify return
@@ -478,15 +490,15 @@ class CatAPITest(APITestCase):
 
     def test_return_available_cat_to_shelter(self):
         """Test returning a cat that's not adopted."""
-        url = reverse('cat-return-to-shelter', kwargs={'pk': self.cat1.pk})
+        url = reverse("cat-return-to-shelter", kwargs={"pk": self.cat1.pk})
 
-        response = self.client.post(url, format='json')
+        response = self.client.post(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.data)
+        self.assertIn("error", response.data)
 
     def test_available_cats(self):
         """Test GET /api/cats/available/"""
-        url = reverse('cat-available')
+        url = reverse("cat-available")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -494,40 +506,40 @@ class CatAPITest(APITestCase):
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)
 
-        cat_names = [cat['name'] for cat in data]
-        self.assertIn('Whiskers', cat_names)
-        self.assertIn('Mittens', cat_names)
-        self.assertNotIn('Shadow', cat_names)
+        cat_names = [cat["name"] for cat in data]
+        self.assertIn("Whiskers", cat_names)
+        self.assertIn("Mittens", cat_names)
+        self.assertNotIn("Shadow", cat_names)
 
     def test_adopted_cats(self):
         """Test GET /api/cats/adopted/"""
-        url = reverse('cat-adopted')
+        url = reverse("cat-adopted")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Should return only cat3
         data = _parse_response_data(response)
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['name'], 'Shadow')
+        self.assertEqual(data[0]["name"], "Shadow")
 
     def test_statistics(self):
         """Test GET /api/cats/statistics/"""
-        url = reverse('cat-statistics')
+        url = reverse("cat-statistics")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         stats = response.data
-        self.assertEqual(stats['total_cats'], 3)
-        self.assertEqual(stats['adopted_cats'], 1)
-        self.assertEqual(stats['available_cats'], 2)
-        self.assertEqual(stats['adoption_rate'], 33.33)
-        self.assertEqual(stats['neutered_cats'], 2)
-        self.assertEqual(stats['breeds_count'], 2)  # Persian and Siamese
+        self.assertEqual(stats["total_cats"], 3)
+        self.assertEqual(stats["adopted_cats"], 1)
+        self.assertEqual(stats["available_cats"], 2)
+        self.assertEqual(stats["adoption_rate"], 33.33)
+        self.assertEqual(stats["neutered_cats"], 2)
+        self.assertEqual(stats["breeds_count"], 2)  # Persian and Siamese
 
     def test_breeds_statistics(self):
         """Test GET /api/cats/breeds/"""
-        url = reverse('cat-breeds')
+        url = reverse("cat-breeds")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -537,93 +549,93 @@ class CatAPITest(APITestCase):
         self.assertEqual(len(breeds), 2)
 
         # Find Persian stats
-        persian_stats = next(b for b in breeds if b['breed'] == 'Persian')
-        self.assertEqual(persian_stats['count'], 2)  # Whiskers and Shadow
-        self.assertEqual(persian_stats['adoption_rate'], 50.0)  # Shadow is adopted
+        persian_stats = next(b for b in breeds if b["breed"] == "Persian")
+        self.assertEqual(persian_stats["count"], 2)  # Whiskers and Shadow
+        self.assertEqual(persian_stats["adoption_rate"], 50.0)  # Shadow is adopted
 
     def test_search_cats(self):
         """Test GET /api/cats/search/"""
-        url = reverse('cat-search')
+        url = reverse("cat-search")
         # Search by name
-        response = self.client.get(url, {'name': 'Whiskers'})
+        response = self.client.get(url, {"name": "Whiskers"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = _parse_response_data(response)
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]['name'], 'Whiskers')
+        self.assertEqual(results[0]["name"], "Whiskers")
 
         # Search by breed
-        response = self.client.get(url, {'breed': 'Persian'})
+        response = self.client.get(url, {"breed": "Persian"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = _parse_response_data(response)
         self.assertEqual(len(results), 2)
 
         # Search available only
-        response = self.client.get(url, {'available': 'true'})
+        response = self.client.get(url, {"available": "true"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = _parse_response_data(response)
         self.assertEqual(len(results), 2)
 
     def test_filtering(self):
         """Test query parameter filtering."""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
         # Filter by status
-        response = self.client.get(url, {'status': 'available'})
+        response = self.client.get(url, {"status": "available"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)
 
-        response = self.client.get(url, {'status': 'adopted'})
+        response = self.client.get(url, {"status": "adopted"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 1)
 
         # Filter by breed
-        response = self.client.get(url, {'breed': 'persian'})
+        response = self.client.get(url, {"breed": "persian"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)
 
         # Filter by neutered status
-        response = self.client.get(url, {'neutered': 'true'})
+        response = self.client.get(url, {"neutered": "true"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)
 
         # Filter by age range
-        response = self.client.get(url, {'min_age': '2', 'max_age': '3'})
+        response = self.client.get(url, {"min_age": "2", "max_age": "3"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)  # Whiskers (3) and Mittens (2)
 
     def test_search_filtering(self):
         """Test search endpoint filtering."""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
 
         # Test search functionality
-        response = self.client.get(url, {'search': 'Whiskers'})
+        response = self.client.get(url, {"search": "Whiskers"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 1)
 
-        response = self.client.get(url, {'search': 'Persian'})
+        response = self.client.get(url, {"search": "Persian"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
         self.assertEqual(len(data), 2)
 
     def test_ordering(self):
         """Test ordering functionality."""
-        url = reverse('cat-list')
+        url = reverse("cat-list")
 
         # Order by name
-        response = self.client.get(url, {'ordering': 'name'})
+        response = self.client.get(url, {"ordering": "name"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
-        names = [cat['name'] for cat in data]
-        self.assertEqual(names, ['Mittens', 'Shadow', 'Whiskers'])
+        names = [cat["name"] for cat in data]
+        self.assertEqual(names, ["Mittens", "Shadow", "Whiskers"])
 
         # Order by age
-        response = self.client.get(url, {'ordering': 'age'})
+        response = self.client.get(url, {"ordering": "age"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = _parse_response_data(response)
-        ages = [cat['age'] for cat in data]
+        ages = [cat["age"] for cat in data]
         self.assertEqual(ages, [1, 2, 3])
