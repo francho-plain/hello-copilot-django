@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     # Local apps
     "cats.apps.CatsConfig",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
