@@ -97,3 +97,7 @@ urlpatterns = [
         name="redoc",
     ),
 ]
+
+# Add Silk profiling URLs in development
+if settings.DEBUG:
+    urlpatterns += [path("silk/", include("silk.urls", namespace="silk"))]
